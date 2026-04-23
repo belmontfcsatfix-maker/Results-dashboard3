@@ -405,7 +405,8 @@ async function loadData() {
   ]);
 
   if (!rows1 && !rows2) {
-    showError('Neither gamesdata1.csv nor gamesdata2.csv could be loaded.');
+    DATA = [];
+    initDashboard();
     return;
   }
 
@@ -654,6 +655,9 @@ function renderStats(filtered) {
       `<div class="np-reason"><span class="dot" style="background:${reasonColour(r)}"></span><span class="cnt">${cnt}</span> ${r}</div>`
     ).join('');
 
+  const gf = played.reduce((s,g) => s + (g.is_home ? g.h_goals : g.a_goals), 0);
+  const ga = played.reduce((s,g) => s + (g.is_home ? g.a_goals : g.h_goals), 0);
+
   // Active state: pill is highlighted if its result_type is in the filter AND not all selected
   const isAllSt = filters.st.size === ALL_ST.length;
   const act = v => (!isAllSt && filters.st.has(v)) ? 'active-pill' : '';
@@ -662,6 +666,10 @@ function renderStats(filtered) {
   document.getElementById('statsRow').innerHTML = `
     <button class="pill ${isAllSt?'':'' }" onclick="selectOnlySt(null)">
       <div class="v">${total}</div><div class="l">Total</div>
+      ${played.length ? `<div style="font-size:0.62rem;margin-top:5px;display:flex;gap:8px;color:var(--muted)">
+        <span><span style="color:var(--green);font-family:'Bebas Neue',sans-serif">${gf}</span> for</span>
+        <span><span style="color:var(--red);font-family:'Bebas Neue',sans-serif">${ga}</span> against</span>
+      </div>` : ''}
     </button>
     <button class="pill ${act('win')}" onclick="selectOnlySt('win')">
       <div class="v" style="color:var(--green)">${w}</div><div class="l">Wins</div>
