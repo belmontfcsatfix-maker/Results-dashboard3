@@ -253,6 +253,7 @@ td.loccol { font-size:0.78rem; color:var(--muted); max-width:160px; overflow:hid
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('fixtures',this)">Fixtures</button>
   <button class="tab-btn" onclick="switchTab('insights',this)">Season Insights</button>
+  <button class="tab-btn" onclick="switchTab('deep',this)">Deep Analysis</button>
 </div>
 
 <div id="tab-fixtures" class="tab-panel active">
@@ -340,6 +341,8 @@ function selectOnlySt(val)           { if(window._selectOnlySt) window._selectOn
 function switchTab(tab, btn)         { if(window._switchTab) window._switchTab(tab, btn); }
 function insFilterChange(key, val)   { if(window._insFilterChange) window._insFilterChange(key, val); }
 function resetInsights()             { if(window._resetInsights) window._resetInsights(); }
+function resetDeep()                 { if(window._resetDeep) window._resetDeep(); }
+function deepFilterChange(key, val)  { if(window._deepFilterChange) window._deepFilterChange(key, val); }
 
 // ── CSV loader ──────────────────────────────────────────────────────────────
 // Reads data from belmont_ddsl_data.csv in the same directory as this file.
@@ -808,6 +811,7 @@ function switchTab(tab, btn) {
   btn.classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'insights') renderInsights();
+  if (tab === 'deep') { rebuildDeepDropdowns(); renderDeep(); }
 }
 
 /* ════════════════════════════════
@@ -1115,6 +1119,277 @@ function renderInsights() {
   grid.innerHTML = cards.join('');
 }
 
+// ── DEEP ANALYSIS TAB ──────────────────────────────────────────────────────
+
+function deepFilters() {
+  return {
+    group: document.getElementById('deep-groupSel')?.value || 'all',
+    age:   document.getElementById('deep-ageSel')?.value   || 'all',
+    div:   document.getElementById('deep-divSel')?.value   || 'all',
+    tp:    document.getElementById('deep-tpSel')?.value    || 'all',
+    ha:    document.getElementById('deep-haSel')?.value    || 'all',
+  };
+}
+
+function deepPool() {
+  const f = deepFilters();
+  return ALL.filter(g => {
+    if (g.result_type === 'np' || g.result_type === 'nr') return false;
+    if (g.h_goals === null) return false;
+    if (f.group !== 'all' && g.group !== f.group) return false;
+    if (f.age   !== 'all' && g.age   !== f.age)   return false;
+    if (f.div   !== 'all' && g.division !== f.div) return false;
+    if (f.tp    !== 'all' && g.tournament !== f.tp) return false;
+    if (f.ha === 'home' && !g.is_home) return false;
+    if (f.ha === 'away' && g.is_home)  return false;
+    return true;
+  });
+}
+
+function deepPoolExcluding(key) {
+  const f = deepFilters();
+  return ALL.filter(g => {
+    if (g.result_type === 'np' || g.result_type === 'nr' || g.h_goals === null) return false;
+    if (key !== 'group' && f.group !== 'all' && g.group !== f.group) return false;
+    if (key !== 'age'   && f.age   !== 'all' && g.age   !== f.age)   return false;
+    if (key !== 'div'   && f.div   !== 'all' && g.division !== f.div) return false;
+    if (key !== 'tp'    && f.tp    !== 'all' && g.tournament !== f.tp) return false;
+    if (key !== 'ha'    && f.ha === 'home' && !g.is_home) return false;
+    if (key !== 'ha'    && f.ha === 'away' && g.is_home)  return false;
+    return true;
+  });
+}
+
+function rebuildDeepDropdowns() {
+  const f = deepFilters();
+  function rebuildDeepSel(id, vals, cur, placeholder) {
+    const el = document.getElementById(id); if (!el) return;
+    const prev = cur || el.value;
+    el.innerHTML = `<option value="all">${placeholder}</option>` +
+      vals.map(v => `<option value="${v}"${v===prev?' selected':''}>${v}</option>`).join('');
+  }
+  rebuildDeepSel('deep-groupSel', [...new Set(deepPoolExcluding('group').map(g=>g.group).filter(Boolean))].sort(), f.group, 'All Groups');
+  rebuildDeepSel('deep-ageSel',   [...new Set(deepPoolExcluding('age').map(g=>g.age))].sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1))), f.age, 'All Ages');
+  rebuildDeepSel('deep-divSel',   [...new Set(deepPoolExcluding('div').map(g=>g.division))].sort((a,b)=>parseFloat(a)-parseFloat(b)), f.div, 'All Divisions');
+  rebuildDeepSel('deep-tpSel',    [...new Set(deepPoolExcluding('tp').map(g=>g.tournament))].sort(), f.tp, 'All');
+}
+
+window._deepFilterChange = function(key, val) {
+  rebuildDeepDropdowns();
+  renderDeep();
+};
+
+window._resetDeep = function() {
+  ['deep-groupSel','deep-ageSel','deep-divSel','deep-tpSel','deep-haSel'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = 'all';
+  });
+  rebuildDeepDropdowns();
+  renderDeep();
+};
+
+function pct(w, n) { return n > 0 ? Math.round(w / n * 100) : 0; }
+function ppg(pts, n) { return n > 0 ? (pts / n).toFixed(2) : '—'; }
+function pctCol(p) { return p >= 60 ? 'var(--green)' : p >= 40 ? 'var(--yellow)' : 'var(--red)'; }
+
+function renderDeep() {
+  const grid = document.getElementById('deepGrid');
+  if (!grid) return;
+  const pool = deepPool();
+  if (!pool.length) { grid.innerHTML = '<div style="color:var(--muted);padding:40px;text-align:center">No data matches the selected filters</div>'; return; }
+
+  // Sort pool by date_sort for form/streak calculations
+  const chronPool = [...pool].sort((a,b) => (a.date_sort||'') < (b.date_sort||'') ? -1 : 1);
+  const cards = [];
+
+  // ── 1. REFEREE REPORT ────────────────────────────────────────────────────
+  const refMap = {};
+  pool.forEach(g => {
+    const ref = g.referee && g.referee.trim() ? g.referee.trim() : 'Unknown';
+    if (!refMap[ref]) refMap[ref] = { w:0, d:0, l:0, gf:0, ga:0 };
+    const me = g.is_home ? g.h_goals : g.a_goals, them = g.is_home ? g.a_goals : g.h_goals;
+    refMap[ref].gf += me; refMap[ref].ga += them;
+    if (me > them) refMap[ref].w++; else if (me === them) refMap[ref].d++; else refMap[ref].l++;
+  });
+  const refRows = Object.entries(refMap)
+    .map(([ref, s]) => { const n = s.w+s.d+s.l; return { ref, ...s, n, wpct: pct(s.w, n), gpg: n > 0 ? ((s.gf+s.ga)/n).toFixed(1) : '0' }; })
+    .sort((a,b) => b.n - a.n);
+  const maxRefGames = refRows[0]?.n || 1;
+  cards.push(buildCard('🧑‍⚖️ Referee Report', 'Performance by referee',
+    ['Referee','G','W%','GF','GA','G/Game'],
+    refRows.map(r => `<tr>
+      <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span class="team-name">${esc2(r.ref)}</span></td>
+      <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${r.n}</td>
+      <td style="text-align:right;font-family:'Bebas Neue',sans-serif;color:${pctCol(r.wpct)}">${r.wpct}%</td>
+      <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${r.gf}</td>
+      <td style="text-align:right;color:var(--red);font-family:'Bebas Neue',sans-serif">${r.ga}</td>
+      <td style="text-align:right;color:var(--yellow);font-family:'Bebas Neue',sans-serif">${r.gpg}</td>
+    </tr>`),
+    [null,'right','right','right','right','right']
+  ));
+
+  // ── 2. VENUE ANALYSIS (Fortress Herbert Park vs Road Warriors) ────────────
+  function venueStats(games) {
+    const n = games.length;
+    const w = games.filter(g => { const me = g.is_home?g.h_goals:g.a_goals, th = g.is_home?g.a_goals:g.h_goals; return me>th; }).length;
+    const d = games.filter(g => { const me = g.is_home?g.h_goals:g.a_goals, th = g.is_home?g.a_goals:g.h_goals; return me===th; }).length;
+    const l = n - w - d;
+    const gf = games.reduce((s,g) => s + (g.is_home ? g.h_goals : g.a_goals), 0);
+    const ga = games.reduce((s,g) => s + (g.is_home ? g.a_goals : g.h_goals), 0);
+    const pts = w*3 + d;
+    const cs = games.filter(g => (g.is_home ? g.a_goals : g.h_goals) === 0).length;
+    return { n, w, d, l, gf, ga, pts, cs, ppg: ppg(pts, n), gd: gf - ga, wpct: pct(w, n) };
+  }
+  const homeGames = pool.filter(g => g.is_home);
+  const awayGames = pool.filter(g => !g.is_home);
+  const hs = venueStats(homeGames), as2 = venueStats(awayGames);
+  cards.push(buildCard('🏟 Fortress vs Road Warriors', 'Home vs Away performance',
+    ['Venue','G','W','D','L','PPG','GF','GA','GD','CS','W%'],
+    [
+      ['🏠 Home', hs], ['✈️ Away', as2]
+    ].map(([label, s]) => `<tr>
+      <td style="white-space:nowrap;font-family:'Bebas Neue',sans-serif;color:var(--yellow)">${label}</td>
+      <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${s.n}</td>
+      <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${s.w}</td>
+      <td style="text-align:right;font-family:'Bebas Neue',sans-serif">${s.d}</td>
+      <td style="text-align:right;color:var(--red);font-family:'Bebas Neue',sans-serif">${s.l}</td>
+      <td style="text-align:right;color:var(--yellow);font-family:'Bebas Neue',sans-serif">${s.ppg}</td>
+      <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${s.gf}</td>
+      <td style="text-align:right;color:var(--red);font-family:'Bebas Neue',sans-serif">${s.ga}</td>
+      <td style="text-align:right;font-family:'Bebas Neue',sans-serif;color:${s.gd>0?'var(--green)':s.gd<0?'var(--red)':'var(--muted)'}">${s.gd>0?'+':''}${s.gd}</td>
+      <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${s.cs}</td>
+      <td style="text-align:right;font-family:'Bebas Neue',sans-serif;color:${pctCol(s.wpct)}">${s.wpct}%</td>
+    </tr>`),
+    [null,'right','right','right','right','right','right','right','right','right','right']
+  ));
+
+  // ── 3. FORM STREAK: Last 5 ────────────────────────────────────────────────
+  // Per age group, show last 5 results and current streak
+  const ageGroups = [...new Set(chronPool.map(g => g.age))].sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1)));
+  const formRows = ageGroups.map(age => {
+    const games = chronPool.filter(g => g.age === age);
+    const last5 = games.slice(-5);
+    const form = last5.map(g => {
+      const me = g.is_home ? g.h_goals : g.a_goals, them = g.is_home ? g.a_goals : g.h_goals;
+      const r = me > them ? 'W' : me === them ? 'D' : 'L';
+      const col = r === 'W' ? 'var(--green)' : r === 'D' ? 'var(--yellow)' : 'var(--red)';
+      return `<span style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:${col};margin-right:3px">${r}</span>`;
+    }).join('');
+    // current streak
+    let streak = 0, streakType = '';
+    for (let i = games.length - 1; i >= 0; i--) {
+      const me = games[i].is_home ? games[i].h_goals : games[i].a_goals;
+      const them = games[i].is_home ? games[i].a_goals : games[i].h_goals;
+      const r = me > them ? 'W' : me === them ? 'D' : 'L';
+      if (!streakType) streakType = r;
+      if (r === streakType) streak++; else break;
+    }
+    const sCol = streakType === 'W' ? 'var(--green)' : streakType === 'D' ? 'var(--yellow)' : 'var(--red)';
+    const streakStr = streakType ? `<span style="color:${sCol};font-family:'Bebas Neue',sans-serif">${streak}${streakType}</span>` : '—';
+    return `<tr>
+      <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow)">${age}</td>
+      <td>${form || '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="text-align:right">${streakStr}</td>
+    </tr>`;
+  });
+  cards.push(buildCard('📈 Form & Streaks', 'Last 5 results per age group + current streak',
+    ['Age','Last 5','Streak'], formRows, [null, null, 'right']));
+
+  // ── 4. BOUNCE BACK FACTOR ─────────────────────────────────────────────────
+  const ageGroupsBB = [...new Set(chronPool.map(g => g.age))].sort((a,b)=>parseInt(a.slice(1))-parseInt(b.slice(1)));
+  const bbRows = ageGroupsBB.map(age => {
+    const games = chronPool.filter(g => g.age === age);
+    let bounceOpps = 0, bounceWins = 0;
+    for (let i = 1; i < games.length; i++) {
+      const prev = games[i-1], curr = games[i];
+      const prevMe = prev.is_home ? prev.h_goals : prev.a_goals;
+      const prevThem = prev.is_home ? prev.a_goals : prev.h_goals;
+      if (prevMe < prevThem) { // previous was a loss
+        bounceOpps++;
+        const me = curr.is_home ? curr.h_goals : curr.a_goals;
+        const them = curr.is_home ? curr.a_goals : curr.h_goals;
+        if (me > them) bounceWins++;
+      }
+    }
+    const bp = pct(bounceWins, bounceOpps);
+    return `<tr>
+      <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow)">${age}</td>
+      <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${bounceOpps}</td>
+      <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${bounceWins}</td>
+      <td style="text-align:right;font-family:'Bebas Neue',sans-serif;color:${pctCol(bp)}">${bounceOpps > 0 ? bp + '%' : '—'}</td>
+    </tr>`;
+  });
+  cards.push(buildCard('💪 Bounce Back Factor', 'Win rate in the game immediately after a loss',
+    ['Age','After Loss','Bounced','Win%'], bbRows, [null,'right','right','right']));
+
+  // ── 5. TOURNAMENT SPECIALIST ──────────────────────────────────────────────
+  const tpMap = {};
+  pool.forEach(g => {
+    const tp = g.tournament || 'League';
+    if (!tpMap[tp]) tpMap[tp] = { w:0, d:0, l:0, gf:0, ga:0 };
+    const me = g.is_home ? g.h_goals : g.a_goals, them = g.is_home ? g.a_goals : g.h_goals;
+    tpMap[tp].gf += me; tpMap[tp].ga += them;
+    if (me > them) tpMap[tp].w++; else if (me === them) tpMap[tp].d++; else tpMap[tp].l++;
+  });
+  const tpRows = Object.entries(tpMap).sort((a,b) => (b[1].w+b[1].d+b[1].l) - (a[1].w+a[1].d+a[1].l));
+  cards.push(buildCard('🏆 Tournament Specialist', 'Win % by competition type',
+    ['Type','G','W','D','L','GF','GA','PPG','W%'],
+    tpRows.map(([tp, s]) => {
+      const n = s.w+s.d+s.l, pts = s.w*3+s.d, wp = pct(s.w, n);
+      return `<tr>
+        <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow)">${esc2(tp)}</td>
+        <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${n}</td>
+        <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${s.w}</td>
+        <td style="text-align:right;font-family:'Bebas Neue',sans-serif">${s.d}</td>
+        <td style="text-align:right;color:var(--red);font-family:'Bebas Neue',sans-serif">${s.l}</td>
+        <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${s.gf}</td>
+        <td style="text-align:right;color:var(--red);font-family:'Bebas Neue',sans-serif">${s.ga}</td>
+        <td style="text-align:right;color:var(--yellow);font-family:'Bebas Neue',sans-serif">${ppg(pts,n)}</td>
+        <td style="text-align:right;font-family:'Bebas Neue',sans-serif;color:${pctCol(wp)}">${wp}%</td>
+      </tr>`;
+    }),
+    [null,'right','right','right','right','right','right','right','right']
+  ));
+
+  // ── 6. ADVANCED SCORING INSIGHTS ─────────────────────────────────────────
+  const totalGF = pool.reduce((s,g) => s + (g.is_home ? g.h_goals : g.a_goals), 0);
+  const totalGA = pool.reduce((s,g) => s + (g.is_home ? g.a_goals : g.h_goals), 0);
+  const n = pool.length;
+  const offPotency = n > 0 ? (totalGF / n).toFixed(2) : '—';
+  const defSolidity = n > 0 ? (totalGA / n).toFixed(2) : '—';
+
+  // High-Water Mark: GD per age group
+  const ageGD = {};
+  pool.forEach(g => {
+    if (!ageGD[g.age]) ageGD[g.age] = { gf:0, ga:0, n:0 };
+    ageGD[g.age].gf += g.is_home ? g.h_goals : g.a_goals;
+    ageGD[g.age].ga += g.is_home ? g.a_goals : g.h_goals;
+    ageGD[g.age].n++;
+  });
+  const gdRanked = Object.entries(ageGD).map(([age, s]) => ({ age, gd: s.gf - s.ga, gf: s.gf, ga: s.ga, n: s.n }))
+    .sort((a,b) => b.gd - a.gd);
+  const maxGD = Math.max(...gdRanked.map(r => Math.abs(r.gd)), 1);
+
+  cards.push(buildCard('⚡ Advanced Scoring', `${n} played games · ${offPotency} GF/game · ${defSolidity} GA/game`,
+    ['Age','Games','GF','GA','GD','GF/G','GA/G'],
+    gdRanked.map((r, i) => {
+      const gdColor = r.gd > 0 ? 'var(--green)' : r.gd < 0 ? 'var(--red)' : 'var(--muted)';
+      const crown = i === 0 ? ' 👑' : '';
+      return `<tr>
+        <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow);white-space:nowrap">${r.age}${crown}</td>
+        <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${r.n}</td>
+        <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${r.gf}</td>
+        <td style="text-align:right;color:var(--red);font-family:'Bebas Neue',sans-serif">${r.ga}</td>
+        <td style="text-align:right;font-family:'Bebas Neue',sans-serif;color:${gdColor}">${r.gd>0?'+':''}${r.gd}</td>
+        <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${(r.gf/r.n).toFixed(2)}</td>
+        <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${(r.ga/r.n).toFixed(2)}</td>
+      </tr>`;
+    }),
+    [null,'right','right','right','right','right','right']
+  ));
+
+  grid.innerHTML = cards.join('');
+}
+
 function buildCard(title, sub, headers, rows, headerAligns) {
   const ths = headers.map((h,i) => {
     let cls = '';
@@ -1162,6 +1437,24 @@ function buildCard(title, sub, headers, rows, headerAligns) {
     </div>
     <!-- Cards grid -->
     <div class="stats-grid" id="insightsGrid"></div>
+  </div>
+</div>
+<div id="tab-deep" class="tab-panel">
+  <div class="stats-page">
+    <div class="stats-filters">
+      <span class="flbl">Group</span>
+      <select id="deep-groupSel" onchange="deepFilterChange('group',this.value)"><option value="all">All Groups</option></select>
+      <span class="flbl" style="margin-left:8px">Age Group</span>
+      <select id="deep-ageSel" onchange="deepFilterChange('age',this.value)"><option value="all">All Ages</option></select>
+      <span class="flbl" style="margin-left:8px">Division</span>
+      <select id="deep-divSel" onchange="deepFilterChange('div',this.value)"><option value="all">All Divisions</option></select>
+      <span class="flbl" style="margin-left:8px">Championship</span>
+      <select id="deep-tpSel" onchange="deepFilterChange('tp',this.value)"><option value="all">All</option></select>
+      <span class="flbl" style="margin-left:8px">H / A</span>
+      <select id="deep-haSel" onchange="deepFilterChange('ha',this.value)"><option value="all">All</option><option value="home">Home</option><option value="away">Away</option></select>
+      <button onclick="resetDeep()" style="margin-left:auto;background:transparent;border:1px solid rgba(253,184,19,0.4);color:var(--yellow);font-family:'DM Sans',sans-serif;font-size:0.68rem;font-weight:700;padding:4px 10px;border-radius:5px;cursor:pointer;letter-spacing:0.05em;transition:all 0.15s;" onmouseover="this.style.background='rgba(253,184,19,0.1)'" onmouseout="this.style.background='transparent'">↺ Reset</button>
+    </div>
+    <div class="stats-grid" id="deepGrid"></div>
   </div>
 </div>
 </body>
