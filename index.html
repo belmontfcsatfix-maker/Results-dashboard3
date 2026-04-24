@@ -36,13 +36,13 @@ body { background:var(--dark); font-family:'DM Sans',sans-serif; color:var(--tex
 
 /* STATS */
 .stats { display:flex; gap:12px; flex-wrap:wrap; padding:20px 32px; background:rgba(0,0,0,0.2); align-items:stretch; }
-.pill { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 20px;
-  display:flex; flex-direction:column; flex:1 1 110px; cursor:pointer;
+.pill { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:10px 14px;
+  display:flex; flex-direction:column; flex:1 1 80px; cursor:pointer;
   transition:transform 0.2s, border-color 0.2s; text-align:left; outline:none; color:inherit; }
 .pill:hover { border-color:var(--yellow); transform:translateY(-2px); }
 .pill.active-pill { border-color:var(--yellow); background:var(--blue2); box-shadow:0 0 15px rgba(253,184,19,0.1); }
-.pill .v { font-family:'Bebas Neue',sans-serif; font-size:1.8rem; line-height:1; }
-.pill .l { font-size:0.65rem; text-transform:uppercase; color:var(--muted); margin-top:4px; }
+.pill .v { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; line-height:1; }
+.pill .l { font-size:0.6rem; text-transform:uppercase; color:var(--muted); margin-top:3px; }
 .pill-np { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px 20px;
   display:flex; flex-direction:row; align-items:center; gap:20px; flex:2 1 220px;
   cursor:pointer; transition:transform 0.2s, border-color 0.2s; outline:none; color:inherit; }
@@ -205,11 +205,11 @@ td.loccol { font-size:0.78rem; color:var(--muted); max-width:160px; overflow:hid
 .stat-card-title { font-family:'Bebas Neue',sans-serif; font-size:1.05rem; letter-spacing:0.06em; color:var(--yellow); }
 .stat-card-sub { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
 .stat-table { width:100%; border-collapse:collapse; font-size:0.8rem; }
-.stat-table th { padding:8px 14px; text-align:left; font-size:0.58rem; font-weight:700; text-transform:uppercase;
+.stat-table th { padding:8px 10px; text-align:left; font-size:0.58rem; font-weight:700; text-transform:uppercase;
   letter-spacing:0.1em; color:var(--muted); border-bottom:1px solid var(--border); background:var(--blue2); }
 .stat-table th.right { text-align:right; }
 .stat-table th.center { text-align:center; }
-.stat-table td { padding:9px 14px; border-bottom:1px solid rgba(255,255,255,0.03); vertical-align:middle; white-space:normal; word-break:break-word; }
+.stat-table td { padding:9px 10px; border-bottom:1px solid rgba(255,255,255,0.03); vertical-align:middle; white-space:normal; word-break:break-word; }
 .stat-table td.opp { max-width:88px; overflow:hidden; }
 .stat-table td.right { text-align:right; font-family:'Bebas Neue',sans-serif; font-size:0.95rem; color:var(--text); }
 .stat-table tr:last-child td { border-bottom:none; }
@@ -338,6 +338,7 @@ function setDropdown(key, val)       { if(window._setDropdown) window._setDropdo
 function sortBy(col)                 { if(window._sortBy) window._sortBy(col); }
 function resetAll()                  { if(window._resetAll) window._resetAll(); }
 function selectOnlySt(val)           { if(window._selectOnlySt) window._selectOnlySt(val); }
+function selectResultsOnly()         { if(window._selectResultsOnly) window._selectResultsOnly(); }
 function switchTab(tab, btn)         { if(window._switchTab) window._switchTab(tab, btn); }
 function insFilterChange(key, val)   { if(window._insFilterChange) window._insFilterChange(key, val); }
 function resetInsights()             { if(window._resetInsights) window._resetInsights(); }
@@ -699,6 +700,9 @@ function renderStats(filtered) {
         <span><span style="color:var(--red);font-family:'Bebas Neue',sans-serif;font-size:0.9rem">${ga}</span> GA</span>
       </div>
     </button>
+    <button class="pill ${filters.st.size===3 && filters.st.has('win') && filters.st.has('draw') && filters.st.has('loss') ? 'active-pill' : ''}" onclick="selectResultsOnly()">
+      <div class="v" style="color:var(--yellow)">${w+d+l}</div><div class="l">With Results</div>
+    </button>
     <button class="pill ${act('win')}" onclick="selectOnlySt('win')">
       <div class="v" style="color:var(--green)">${w}</div><div class="l">Wins</div>
     </button>
@@ -742,7 +746,12 @@ function selectOnlySt(val) {
   applyFilters();
 }
 
-/* ── RENDER TABLE ── */
+function selectResultsOnly() {
+  const resultsSet = new Set(['win','draw','loss']);
+  const alreadyResultsOnly = filters.st.size === 3 && filters.st.has('win') && filters.st.has('draw') && filters.st.has('loss');
+  filters.st = alreadyResultsOnly ? new Set(ALL_ST) : resultsSet;
+  applyFilters();
+}
 function render(games) {
   const tb = document.getElementById('tbody');
   if (!games.length) {
@@ -795,6 +804,7 @@ window._setDropdown     = setDropdown;
 window._sortBy          = sortBy;
 window._resetAll        = resetAll;
 window._selectOnlySt    = selectOnlySt;
+window._selectResultsOnly = selectResultsOnly;
 window._switchTab       = switchTab;
 window._insFilterChange = insFilterChange;
 window._resetInsights   = resetInsights;
@@ -1287,7 +1297,7 @@ function renderDeep() {
     const streakStr = streakType ? `<span style="color:${sCol};font-family:'Bebas Neue',sans-serif">${streak}${streakType}</span>` : '—';
     return `<tr>
       <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow)">${age}</td>
-      <td>${form || '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="max-width:60px;overflow:hidden">${form || '<span style="color:var(--muted)">—</span>'}</td>
       <td style="text-align:right">${streakStr}</td>
     </tr>`;
   });
@@ -1312,7 +1322,7 @@ function renderDeep() {
     }
     const bp = pct(bounceWins, bounceOpps);
     return `<tr>
-      <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow)">${age}</td>
+      <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow);width:40px;white-space:nowrap">${age}</td>
       <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${bounceOpps}</td>
       <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${bounceWins}</td>
       <td style="text-align:right;font-family:'Bebas Neue',sans-serif;color:${pctCol(bp)}">${bounceOpps > 0 ? bp + '%' : '—'}</td>
@@ -1336,7 +1346,7 @@ function renderDeep() {
     tpRows.map(([tp, s]) => {
       const n = s.w+s.d+s.l, pts = s.w*3+s.d, wp = pct(s.w, n);
       return `<tr>
-        <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow)">${esc2(tp)}</td>
+        <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow);max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc2(tp)}</td>
         <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${n}</td>
         <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${s.w}</td>
         <td style="text-align:right;font-family:'Bebas Neue',sans-serif">${s.d}</td>
@@ -1375,7 +1385,7 @@ function renderDeep() {
       const gdColor = r.gd > 0 ? 'var(--green)' : r.gd < 0 ? 'var(--red)' : 'var(--muted)';
       const crown = i === 0 ? ' 👑' : '';
       return `<tr>
-        <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow);white-space:nowrap">${r.age}${crown}</td>
+        <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow);width:40px;white-space:nowrap">${r.age}${crown}</td>
         <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${r.n}</td>
         <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${r.gf}</td>
         <td style="text-align:right;color:var(--red);font-family:'Bebas Neue',sans-serif">${r.ga}</td>
