@@ -406,7 +406,11 @@ async function loadData() {
   ]);
 
   if (!rows1 && !rows2) {
-    DATA = [];
+    DATA = [
+      { date:'1-Jan-99', date_sort:'1999-01-01', division_raw:'x.xx', home:'Belmont FC', h_goals:9, a_goals:9, away:'Test', referee:'Test', location:'', tournament:'League', played:'Y', reason:'' },
+      { date:'1-Jan-99', date_sort:'1999-01-01', division_raw:'x.xx', home:'Belmont FC', h_goals:9, a_goals:9, away:'Test', referee:'Test', location:'', tournament:'League', played:'Y', reason:'' },
+      { date:'1-Jan-99', date_sort:'1999-01-01', division_raw:'x.xx', home:'Belmont FC', h_goals:9, a_goals:9, away:'Test', referee:'Test', location:'', tournament:'League', played:'Y', reason:'' }
+    ];
     initDashboard();
     return;
   }
@@ -430,11 +434,12 @@ loadData();
 
 function initDashboard() {
 function getDiv(r) {
-  const m = String(r).match(/^(\d+(?:\.\d+(?:\/\d+)*)?)/);
+  // Strip optional leading 'U', then capture first run of digits, dots, and slashes
+  const m = String(r).match(/^U?(\d[\d./]*)/i);
   return m ? m[1] : r;
 }
 function getAge(r) {
-  const m = String(r).match(/^(\d+)/);
+  const m = String(r).match(/^U?(\d+)/i);
   return m ? 'U' + m[1] : 'Other';
 }
 
