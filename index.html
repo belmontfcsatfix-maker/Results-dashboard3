@@ -22,9 +22,9 @@
   --fbox-b: rgba(255,255,255,0.08);
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body
-  { background:var(--dark); font-family:'DM Sans',sans-serif; color:var(--text);
+body { background:var(--dark); font-family:'DM Sans',sans-serif; color:var(--text);
   min-height:100vh; background-image:radial-gradient(circle at 50% -10%, var(--blue2) 0%, var(--dark) 70%); overflow-x:hidden; }
+
 /* HEADER */
 .header { padding:28px 32px 20px; border-bottom:2px solid var(--yellow); display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:12px; }
 .club-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.5rem,6vw,4rem); letter-spacing:0.02em; line-height:0.9; }
@@ -199,27 +199,32 @@ td.loccol { font-size:0.78rem; color:var(--muted); max-width:160px; overflow:hid
 .stats-filters .flbl { font-size:0.58rem; font-weight:700; text-transform:uppercase; letter-spacing:0.13em; color:var(--yellow); opacity:0.85; }
 .stats-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:20px; }
 .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
-.stat-card .stat-table-wrap { overflow-y:auto; max-height:380px; }
+.stat-card .stat-table-wrap { overflow-x:auto; overflow-y:auto; max-height:380px; }
 .stat-card-header { padding:14px 18px 10px; border-bottom:1px solid var(--border);
   display:flex; align-items:center; justify-content:space-between; }
 .stat-card-title { font-family:'Bebas Neue',sans-serif; font-size:1.05rem; letter-spacing:0.06em; color:var(--yellow); }
 .stat-card-sub { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; }
-.stat-table { width:100%; border-collapse:collapse; font-size:0.8rem; }
-.stat-table th { padding:8px 14px; text-align:left; font-size:0.58rem; font-weight:700; text-transform:uppercase;
-  letter-spacing:0.1em; color:var(--muted); border-bottom:1px solid var(--border); background:var(--blue2); }
-.stat-table th.right { text-align:right; }
+.stat-table { width:100%; border-collapse:collapse; font-size:0.78rem; }
+.stat-table th { padding:6px 8px; text-align:center; font-size:0.56rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.08em; color:var(--muted); border-bottom:1px solid var(--border); background:var(--blue2); white-space:nowrap; }
+.stat-table th.right { text-align:center; }
 .stat-table th.center { text-align:center; }
-.stat-table td { padding:9px 14px; border-bottom:1px solid rgba(255,255,255,0.03); vertical-align:middle; white-space:normal; word-break:break-word; }
-.stat-table td.opp { max-width:88px; overflow:hidden; }
-.stat-table td.right { text-align:right; font-family:'Bebas Neue',sans-serif; font-size:0.95rem; color:var(--text); }
+.stat-table td { padding:7px 8px; border-bottom:1px solid rgba(255,255,255,0.03); vertical-align:middle; text-align:center; white-space:nowrap; }
+.stat-table td.opp { text-align:left; white-space:nowrap; }
+.stat-table td.right { text-align:center; font-family:'Bebas Neue',sans-serif; font-size:0.92rem; color:var(--text); }
+/* Ranked cards (1–6): narrow rank col, left-align all other cols */
+.stat-card--ranked .stat-table th:first-child,
+.stat-card--ranked .stat-table td:first-child { width:24px; min-width:24px; max-width:24px; padding-left:6px; padding-right:4px; text-align:center; }
+.stat-card--ranked .stat-table th:not(:first-child) { text-align:left; }
+.stat-card--ranked .stat-table td:not(:first-child) { text-align:left; }
 .stat-table tr:last-child td { border-bottom:none; }
 .stat-table tr:hover td { background:rgba(255,255,255,0.02); }
-.rank { font-family:'Bebas Neue',sans-serif; font-size:0.9rem; color:var(--muted); width:24px; }
+.rank { font-family:'Bebas Neue',sans-serif; font-size:0.85rem; color:var(--muted); width:16px; }
 .rank.gold   { color:#FFD700; }
 .rank.silver { color:#C0C0C0; }
 .rank.bronze { color:#CD7F32; }
-.bar-wrap { display:flex; align-items:center; gap:8px; }
-.bar-bg { flex:1; height:5px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden; min-width:40px; }
+.bar-wrap { display:flex; align-items:center; gap:4px; }
+.bar-bg { flex:1; height:4px; background:rgba(255,255,255,0.07); border-radius:3px; overflow:hidden; min-width:20px; max-width:44px; }
 .bar-fill { height:100%; border-radius:3px; background:var(--yellow); transition:width 0.4s ease; }
 .bar-fill.green { background:var(--green); }
 .bar-fill.red   { background:var(--red); }
@@ -228,7 +233,7 @@ td.loccol { font-size:0.78rem; color:var(--muted); max-width:160px; overflow:hid
 .score-chip.win  { background:rgba(46,204,113,0.15); color:var(--green); border:1px solid rgba(46,204,113,0.3); }
 .score-chip.loss { background:rgba(231,76,60,0.15);  color:var(--red);   border:1px solid rgba(231,76,60,0.3); }
 .score-chip.draw { background:rgba(253,184,19,0.1);  color:var(--yellow);border:1px solid rgba(253,184,19,0.25); }
-.team-name { font-size:0.82rem; color:var(--text); }
+.team-name { font-size:0.76rem; color:var(--text); }
 .team-name.bfc-name { color:var(--yellow); font-weight:700; }
 .no-data { padding:24px; text-align:center; color:var(--muted); font-size:0.8rem; }
 @media(max-width:700px) { .stats-grid { grid-template-columns:1fr; } .tab-bar,.stats-page { padding-left:16px; padding-right:16px; } }
@@ -979,12 +984,12 @@ function renderInsights() {
       const opp = g.is_home ? g.away : g.home;
       return `<tr>
         <td>${rankIcon(i)}</td>
-        <td class="opp"><span class="team-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc2(opp)}</span><span style="font-size:0.65rem;color:var(--muted);white-space:nowrap">${g.date} · ${g.division}</span></td>
-        <td style="text-align:center;white-space:nowrap">${scoreChip(g.h_goals, g.a_goals, g.is_home)}</td>
-        <td class="right"><span style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:1rem">+${g.margin}</span></td>
+        <td class="opp"><div class="team-name">${esc2(opp)}</div><div style="font-size:0.65rem;color:var(--muted)">${g.date} · ${g.division}</div></td>
+        <td>${scoreChip(g.h_goals, g.a_goals, g.is_home)}</td>
+        <td><span style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:1rem">+${g.margin}</span></td>
       </tr>`;
     }),
-    [null,null,'center','right']
+    [null,null,null,null],true
   ));
 
   /* ── 2. Biggest Defeats ── */
@@ -1001,12 +1006,12 @@ function renderInsights() {
       const opp = g.is_home ? g.away : g.home;
       return `<tr>
         <td>${rankIcon(i)}</td>
-        <td class="opp"><span class="team-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc2(opp)}</span><span style="font-size:0.65rem;color:var(--muted);white-space:nowrap">${g.date} · ${g.division}</span></td>
-        <td style="text-align:center;white-space:nowrap">${scoreChip(g.h_goals, g.a_goals, g.is_home)}</td>
-        <td class="right"><span style="color:var(--red);font-family:'Bebas Neue',sans-serif;font-size:1rem">-${g.margin}</span></td>
+        <td class="opp"><div class="team-name">${esc2(opp)}</div><div style="font-size:0.65rem;color:var(--muted)">${g.date} · ${g.division}</div></td>
+        <td>${scoreChip(g.h_goals, g.a_goals, g.is_home)}</td>
+        <td><span style="color:var(--red);font-family:'Bebas Neue',sans-serif;font-size:1rem">-${g.margin}</span></td>
       </tr>`;
     }),
-    [null,null,'center','right']
+    [null,null,null,null],true
   ));
 
   /* ── 3. Highest Scoring Games ── */
@@ -1018,12 +1023,12 @@ function renderInsights() {
       const tot = g.h_goals + g.a_goals;
       return `<tr>
         <td>${rankIcon(i)}</td>
-        <td class="opp"><span class="team-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc2(opp)}</span><span style="font-size:0.65rem;color:var(--muted);white-space:nowrap">${g.date} · ${g.division}</span></td>
-        <td style="text-align:center;white-space:nowrap">${scoreChip(g.h_goals, g.a_goals, g.is_home)}</td>
-        <td class="right"><span style="color:var(--yellow);font-family:'Bebas Neue',sans-serif;font-size:1rem">${tot}</span></td>
+        <td class="opp"><div class="team-name">${esc2(opp)}</div><div style="font-size:0.65rem;color:var(--muted)">${g.date} · ${g.division}</div></td>
+        <td>${scoreChip(g.h_goals, g.a_goals, g.is_home)}</td>
+        <td><span style="color:var(--yellow);font-family:'Bebas Neue',sans-serif;font-size:1rem">${tot}</span></td>
       </tr>`;
     }),
-    [null,null,'center','right']
+    [null,null,null,null],true
   ));
 
   /* ── 4. Most Goals Scored by Belmont ── */
@@ -1035,12 +1040,12 @@ function renderInsights() {
       const opp = g.is_home ? g.away : g.home;
       return `<tr>
         <td>${rankIcon(i)}</td>
-        <td class="opp"><span class="team-name" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc2(opp)}</span><span style="font-size:0.65rem;color:var(--muted);white-space:nowrap">${g.date} · ${g.division}</span></td>
-        <td style="text-align:center;white-space:nowrap">${scoreChip(g.h_goals, g.a_goals, g.is_home)}</td>
-        <td class="right"><span style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:1rem">${g.bfc_goals}</span></td>
+        <td class="opp"><div class="team-name">${esc2(opp)}</div><div style="font-size:0.65rem;color:var(--muted)">${g.date} · ${g.division}</div></td>
+        <td>${scoreChip(g.h_goals, g.a_goals, g.is_home)}</td>
+        <td><span style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:1rem">${g.bfc_goals}</span></td>
       </tr>`;
     }),
-    [null,null,'center','right']
+    [null,null,null,null],true
   ));
 
   /* ── 5. Opponents Belmont Scored Most Against ── */
@@ -1057,10 +1062,10 @@ function renderInsights() {
     ['#','Opponent','Goals','Games'],
     topScoredVs.map(([opp,s],i) => `<tr>
       <td>${rankIcon(i)}</td>
-      <td style="max-width:88px;overflow:hidden;text-overflow:ellipsis"><span class="team-name">${esc2(opp)}</span></td>
-      <td class="right">${barFill(s.goals,maxVsGoals,'green')}<span style="color:var(--green)">${s.goals}</span></td>
-      <td class="right" style="color:var(--muted);font-size:0.78rem;white-space:nowrap">${s.games}</td>
-    </tr>`)
+      <td class="opp"><span class="team-name">${esc2(opp)}</span></td>
+      <td>${barFill(s.goals,maxVsGoals,'green')}<span style="color:var(--green)">${s.goals}</span></td>
+      <td style="color:var(--muted);font-size:0.78rem;white-space:nowrap">${s.games}</td>
+    </tr>`), null, true
   ));
 
   /* ── 6. Toughest Opponents ── */
@@ -1077,10 +1082,10 @@ function renderInsights() {
     ['#','Opponent','Conceded','Games'],
     topConceded.map(([opp,s],i) => `<tr>
       <td>${rankIcon(i)}</td>
-      <td style="max-width:88px;overflow:hidden;text-overflow:ellipsis"><span class="team-name">${esc2(opp)}</span></td>
-      <td class="right">${barFill(s.goals,maxConcG,'red')}<span style="color:var(--red)">${s.goals}</span></td>
-      <td class="right" style="color:var(--muted);font-size:0.78rem;white-space:nowrap">${s.games}</td>
-    </tr>`)
+      <td class="opp"><span class="team-name">${esc2(opp)}</span></td>
+      <td>${barFill(s.goals,maxConcG,'red')}<span style="color:var(--red)">${s.goals}</span></td>
+      <td style="color:var(--muted);font-size:0.78rem;white-space:nowrap">${s.games}</td>
+    </tr>`), null, true
   ));
 
   /* ── 7. Performance by Age Group ── */
@@ -1099,15 +1104,15 @@ function renderInsights() {
       const gdStr = gd>0?`<span style="color:var(--green)">+${gd}</span>`:gd<0?`<span style="color:var(--red)">${gd}</span>`:`<span style="color:var(--muted)">0</span>`;
       return `<tr>
         <td style="font-family:'Bebas Neue',sans-serif;color:var(--yellow);white-space:nowrap">${age}</td>
-        <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${s.w}</td>
-        <td style="text-align:right;font-family:'Bebas Neue',sans-serif">${s.d}</td>
-        <td style="text-align:right;color:var(--red);font-family:'Bebas Neue',sans-serif">${s.l}</td>
-        <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${s.gf}</td>
-        <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${s.ga}</td>
-        <td style="text-align:right;font-family:'Bebas Neue',sans-serif">${gdStr}</td>
+        <td style="text-align:center;color:var(--green);font-family:'Bebas Neue',sans-serif">${s.w}</td>
+        <td style="text-align:center;font-family:'Bebas Neue',sans-serif">${s.d}</td>
+        <td style="text-align:center;color:var(--red);font-family:'Bebas Neue',sans-serif">${s.l}</td>
+        <td style="text-align:center;color:var(--muted);font-family:'Bebas Neue',sans-serif">${s.gf}</td>
+        <td style="text-align:center;color:var(--muted);font-family:'Bebas Neue',sans-serif">${s.ga}</td>
+        <td style="text-align:center;font-family:'Bebas Neue',sans-serif">${gdStr}</td>
       </tr>`;
     }),
-    [null,'right','right','right','right','right','right']
+    [null,'center','center','center','center','center','center']
   ));
 
   /* ── 8. Results by Match Day ── */
@@ -1130,20 +1135,20 @@ function renderInsights() {
       const pctCol = pct>=60?'var(--green)':pct>=40?'var(--yellow)':'var(--red)';
       return `<tr>
         <td style="font-family:'Bebas Neue',sans-serif;color:var(--muted);white-space:nowrap">${date}</td>
-        <td style="text-align:right;color:var(--green);font-family:'Bebas Neue',sans-serif">${s.w}</td>
-        <td style="text-align:right;font-family:'Bebas Neue',sans-serif">${s.d}</td>
-        <td style="text-align:right;color:var(--red);font-family:'Bebas Neue',sans-serif">${s.l}</td>
-        <td style="text-align:right;color:var(--muted);font-family:'Bebas Neue',sans-serif">${tot}</td>
-        <td style="text-align:right;font-family:'Bebas Neue',sans-serif;color:${pctCol}">${pct}%</td>
+        <td style="text-align:center;color:var(--green);font-family:'Bebas Neue',sans-serif">${s.w}</td>
+        <td style="text-align:center;font-family:'Bebas Neue',sans-serif">${s.d}</td>
+        <td style="text-align:center;color:var(--red);font-family:'Bebas Neue',sans-serif">${s.l}</td>
+        <td style="text-align:center;color:var(--muted);font-family:'Bebas Neue',sans-serif">${tot}</td>
+        <td style="text-align:center;font-family:'Bebas Neue',sans-serif;color:${pctCol}">${pct}%</td>
       </tr>`;
     }),
-    [null,'right','right','right','right','right']
+    [null,'center','center','center','center','center']
   ));
 
   grid.innerHTML = cards.join('');
 }
 
-function buildCard(title, sub, headers, rows, headerAligns) {
+function buildCard(title, sub, headers, rows, headerAligns, ranked) {
   const ths = headers.map((h,i) => {
     let cls = '';
     if (headerAligns && headerAligns[i]) cls = headerAligns[i];
@@ -1151,7 +1156,7 @@ function buildCard(title, sub, headers, rows, headerAligns) {
     return `<th${cls?' class="'+cls+'"':''}>${h}</th>`;
   }).join('');
   const trs = rows.length ? rows.join('') : `<tr><td colspan="${headers.length}" class="no-data">No data</td></tr>`;
-  return `<div class="stat-card">
+  return `<div class="stat-card${ranked?' stat-card--ranked':''}">
     <div class="stat-card-header">
       <div class="stat-card-title">${title}</div>
       <div class="stat-card-sub">${sub}</div>
