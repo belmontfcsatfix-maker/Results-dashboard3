@@ -252,11 +252,10 @@ td.loccol { font-size:0.78rem; color:var(--muted); max-width:160px; overflow:hid
 }
 .act-expand-btn:hover { background:rgba(253,184,19,0.1); border-color:var(--yellow); }
 .act-expand-btn.expanded { background:rgba(253,184,19,0.15); }
-#activityTable thead th {
-  padding:13px 15px; text-align:left; font-size:0.6rem; font-weight:700;
+#activityTable thead th { padding:13px 15px; text-align:left; font-size:0.6rem; font-weight:700;
   text-transform:uppercase; color:var(--yellow); border-bottom:1px solid var(--border);
-  white-space:nowrap; user-select:none; background:var(--blue2);
-}
+  white-space:nowrap; user-select:none; background:var(--blue2); }
+#activityTable thead th[onclick]:hover { color:#fff; }
 #activityTable tbody tr { border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.1s; }
 #activityTable tbody tr:hover { background:rgba(255,255,255,0.03); }
 #activityTable td { padding:12px 15px; vertical-align:middle; white-space:nowrap; }
@@ -1201,6 +1200,8 @@ function buildCard(title, sub, headers, rows, headerAligns, ranked) {
    TEAMS ACTIVITY TAB (inside initDashboard so ALL is in scope)
 ════════════════════════════════ */
 let actExpanded = false;
+let actSortCol = null; // 'played' | 'np' | null
+let actSortAsc = false;
 
 function toggleActivityExpand() {
   actExpanded = !actExpanded;
@@ -1223,6 +1224,17 @@ function toggleActivityExpand() {
   renderActivityTable();
 }
 window._toggleActivityExpand = toggleActivityExpand;
+
+function sortActivityBy(col) {
+  if (actSortCol === col) {
+    actSortAsc = !actSortAsc;
+  } else {
+    actSortCol = col;
+    actSortAsc = false; // default: highest first
+  }
+  renderActivityTable();
+}
+window._sortActivityBy = sortActivityBy;
 
 function renderActivity() {
   renderActivityTable();
@@ -1248,6 +1260,24 @@ function renderActivityTable() {
   });
 
   const ageSorted = Object.keys(ageMap).sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+
+  // Apply sort if a sort column is active
+  const ageEntries = ageSorted.map(age => {
+    const s = ageMap[age];
+    return { age, s, played: s.w + s.d + s.l };
+  });
+  if (actSortCol === 'played') {
+    ageEntries.sort((a,b) => actSortAsc ? a.played - b.played : b.played - a.played);
+  } else if (actSortCol === 'np') {
+    ageEntries.sort((a,b) => actSortAsc ? a.s.np - b.s.np : b.s.np - a.s.np);
+  }
+
+  // Update sort indicators on headers
+  const thPlayed = document.getElementById('act-th-played');
+  const thNp     = document.getElementById('act-th-np');
+  if (thPlayed) thPlayed.innerHTML = 'Total Played' + (actSortCol==='played' ? (actSortAsc?' ↑':' ↓') : ' ↕');
+  if (thNp)     thNp.innerHTML     = 'Not Played'   + (actSortCol==='np'     ? (actSortAsc?' ↑':' ↓') : ' ↕');
+
   const tbody = document.getElementById('activityTbody');
   const divTh = document.getElementById('act-th-div');
   if (divTh) divTh.style.display = actExpanded ? '' : 'none';
@@ -1265,9 +1295,7 @@ function renderActivityTable() {
   }
 
   let html = '';
-  ageSorted.forEach(age => {
-    const s = ageMap[age];
-    const played = s.w + s.d + s.l;
+  ageEntries.forEach(({ age, s, played }) => {
     html += `<tr class="act-group-row">
       <td class="act-age-cell">${age}</td>
       ${actExpanded ? '<td style="color:var(--muted);font-size:0.75rem;font-style:italic;padding-left:15px">All divisions</td>' : ''}
@@ -1332,8 +1360,8 @@ window._renderActivity = renderActivity;
               <th style="text-align:center;">Draws</th>
               <th style="text-align:center;color:var(--red);">Losses</th>
               <th style="text-align:center;color:var(--amber);">Not Reported</th>
-              <th style="text-align:center;color:var(--text);">Total Played</th>
-              <th style="text-align:center;color:var(--muted);">Not Played</th>
+              <th id="act-th-played" style="text-align:center;color:var(--text);cursor:pointer;user-select:none;" onclick="if(window._sortActivityBy) window._sortActivityBy('played')" title="Sort by Total Played">Total Played ↕</th>
+              <th id="act-th-np" style="text-align:center;color:var(--muted);cursor:pointer;user-select:none;" onclick="if(window._sortActivityBy) window._sortActivityBy('np')" title="Sort by Not Played">Not Played ↕</th>
             </tr>
           </thead>
           <tbody id="activityTbody"></tbody>
