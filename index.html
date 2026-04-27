@@ -238,6 +238,34 @@ td.loccol { font-size:0.78rem; color:var(--muted); max-width:160px; overflow:hid
 .no-data { padding:24px; text-align:center; color:var(--muted); font-size:0.8rem; }
 @media(max-width:700px) { .stats-grid { grid-template-columns:1fr; } .tab-bar,.stats-page { padding-left:16px; padding-right:16px; } }
 @media(max-width:1100px) { .stats-grid { grid-template-columns:1fr; } }
+
+/* TEAMS ACTIVITY TAB */
+.act-section { margin-bottom:32px; }
+.act-header { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:14px; }
+.act-title { font-family:'Bebas Neue',sans-serif; font-size:1.15rem; letter-spacing:0.05em; color:var(--yellow); }
+.act-sub { font-size:0.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin-top:3px; }
+.act-expand-btn {
+  background:var(--blue2); border:1px solid rgba(253,184,19,0.4); color:var(--yellow);
+  font-family:'DM Sans',sans-serif; font-size:0.74rem; font-weight:700;
+  padding:7px 14px; border-radius:8px; cursor:pointer; letter-spacing:0.05em;
+  transition:all 0.15s; display:flex; align-items:center; gap:6px; white-space:nowrap;
+}
+.act-expand-btn:hover { background:rgba(253,184,19,0.1); border-color:var(--yellow); }
+.act-expand-btn.expanded { background:rgba(253,184,19,0.15); }
+#activityTable thead th {
+  padding:13px 15px; text-align:left; font-size:0.6rem; font-weight:700;
+  text-transform:uppercase; color:var(--yellow); border-bottom:1px solid var(--border);
+  white-space:nowrap; user-select:none; background:var(--blue2);
+}
+#activityTable tbody tr { border-bottom:1px solid rgba(255,255,255,0.04); transition:background 0.1s; }
+#activityTable tbody tr:hover { background:rgba(255,255,255,0.03); }
+#activityTable td { padding:12px 15px; vertical-align:middle; white-space:nowrap; }
+.act-age-cell { font-family:'Bebas Neue',sans-serif; font-size:1.05rem; color:var(--yellow); }
+.act-div-cell { font-size:0.8rem; color:var(--muted); padding-left:28px !important; }
+.act-num { font-family:'Bebas Neue',sans-serif; font-size:1rem; text-align:center; }
+.act-group-row { background:rgba(253,184,19,0.04); }
+.act-group-row td { border-top:1px solid rgba(253,184,19,0.12); }
+.act-div-row td { border-bottom:1px solid rgba(255,255,255,0.03); }
 </style>
 </head>
 <body>
@@ -258,6 +286,7 @@ td.loccol { font-size:0.78rem; color:var(--muted); max-width:160px; overflow:hid
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('fixtures',this)">Fixtures</button>
   <button class="tab-btn" onclick="switchTab('insights',this)">Season Insights</button>
+  <button class="tab-btn" onclick="switchTab('activity',this)">Teams Activity</button>
 </div>
 
 <div id="tab-fixtures" class="tab-panel active">
@@ -708,7 +737,7 @@ function renderStats(filtered) {
   document.getElementById('statsRow').innerHTML = `
     <button class="pill ${isAllSt?'':'' }" onclick="selectOnlySt(null)" style="flex:0 1 126px;min-width:0;">
       <div class="v">${total}</div>
-      <div class="l">Total</div>
+      <div class="l">Total Games</div>
       <div style="display:flex;gap:6px;margin-top:6px;color:var(--muted);font-size:0.65rem;white-space:nowrap">
         <span><span style="color:var(--green);font-family:'Bebas Neue',sans-serif;font-size:0.85rem">${gf}</span> GF</span>
         <span><span style="color:var(--red);font-family:'Bebas Neue',sans-serif;font-size:0.85rem">${ga}</span> GA</span>
@@ -841,6 +870,7 @@ function switchTab(tab, btn) {
   btn.classList.add('active');
   document.getElementById('tab-' + tab).classList.add('active');
   if (tab === 'insights') renderInsights();
+  if (tab === 'activity') renderActivity();
 }
 
 /* ════════════════════════════════
@@ -1167,9 +1197,150 @@ function buildCard(title, sub, headers, rows, headerAligns, ranked) {
   </div>`;
 }
 
+/* ════════════════════════════════
+   TEAMS ACTIVITY TAB (inside initDashboard so ALL is in scope)
+════════════════════════════════ */
+let actExpanded = false;
+
+function toggleActivityExpand() {
+  actExpanded = !actExpanded;
+  const btn = document.getElementById('actExpandBtn');
+  const icon = document.getElementById('actExpandIcon');
+  const label = document.getElementById('actExpandLabel');
+  const divTh = document.getElementById('act-th-div');
+
+  if (actExpanded) {
+    btn.classList.add('expanded');
+    icon.textContent = '⊟';
+    label.textContent = 'Collapse Divisions';
+    divTh.style.display = '';
+  } else {
+    btn.classList.remove('expanded');
+    icon.textContent = '⊞';
+    label.textContent = 'Expand by Division';
+    divTh.style.display = 'none';
+  }
+  renderActivityTable();
+}
+window._toggleActivityExpand = toggleActivityExpand;
+
+function renderActivity() {
+  renderActivityTable();
+}
+
+function renderActivityTable() {
+  const ageMap = {};
+  ALL.forEach(g => {
+    const age = g.age;
+    const div = g.division;
+    if (!ageMap[age]) ageMap[age] = { total:0, w:0, d:0, l:0, nr:0, np:0, divs:{} };
+    if (!ageMap[age].divs[div]) ageMap[age].divs[div] = { total:0, w:0, d:0, l:0, nr:0, np:0 };
+
+    const agg = ageMap[age];
+    const dag = ageMap[age].divs[div];
+
+    agg.total++; dag.total++;
+    if (g.result_type === 'win')       { agg.w++;  dag.w++;  }
+    else if (g.result_type === 'draw') { agg.d++;  dag.d++;  }
+    else if (g.result_type === 'loss') { agg.l++;  dag.l++;  }
+    else if (g.result_type === 'nr')   { agg.nr++; dag.nr++; }
+    else if (g.result_type === 'np')   { agg.np++; dag.np++; }
+  });
+
+  const ageSorted = Object.keys(ageMap).sort((a,b) => parseInt(a.slice(1)) - parseInt(b.slice(1)));
+  const tbody = document.getElementById('activityTbody');
+  const divTh = document.getElementById('act-th-div');
+  if (divTh) divTh.style.display = actExpanded ? '' : 'none';
+
+  function numCell(val, colour) {
+    const style = colour ? `color:${colour}` : '';
+    return `<td class="act-num" style="text-align:center;${style}">${val > 0 ? val : '<span style="opacity:0.25">–</span>'}</td>`;
+  }
+
+  function pctCell(val, total, colour) {
+    const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+    const style = colour ? `color:${colour}` : '';
+    if (val === 0) return `<td class="act-num" style="text-align:center;${style}"><span style="opacity:0.25">–</span></td>`;
+    return `<td class="act-num" style="text-align:center;${style}">${val} <span style="font-size:0.72rem;opacity:0.7">(${pct}%)</span></td>`;
+  }
+
+  let html = '';
+  ageSorted.forEach(age => {
+    const s = ageMap[age];
+    const played = s.w + s.d + s.l;
+    html += `<tr class="act-group-row">
+      <td class="act-age-cell">${age}</td>
+      ${actExpanded ? '<td style="color:var(--muted);font-size:0.75rem;font-style:italic;padding-left:15px">All divisions</td>' : ''}
+      ${numCell(s.total)}
+      ${numCell(s.w, 'var(--green)')}
+      ${numCell(s.d)}
+      ${numCell(s.l, 'var(--red)')}
+      ${numCell(s.nr, 'var(--amber)')}
+      ${pctCell(played, s.total, 'var(--text)')}
+      ${pctCell(s.np, s.total, 'var(--muted)')}
+    </tr>`;
+
+    if (actExpanded) {
+      const divSorted = Object.keys(s.divs).sort((a,b) => parseFloat(a) - parseFloat(b));
+      divSorted.forEach(div => {
+        const d = s.divs[div];
+        const dplayed = d.w + d.d + d.l;
+        html += `<tr class="act-div-row">
+          <td></td>
+          <td class="act-div-cell">↳ ${div}</td>
+          ${numCell(d.total)}
+          ${numCell(d.w, 'var(--green)')}
+          ${numCell(d.d)}
+          ${numCell(d.l, 'var(--red)')}
+          ${numCell(d.nr, 'var(--amber)')}
+          ${pctCell(dplayed, d.total, 'var(--text)')}
+          ${pctCell(d.np, d.total, 'var(--muted)')}
+        </tr>`;
+      });
+    }
+  });
+
+  tbody.innerHTML = html;
+}
+window._renderActivity = renderActivity;
+
 }
 </script>
 
+</div>
+
+<div id="tab-activity" class="tab-panel">
+  <div class="stats-page">
+    <div class="act-section">
+      <div class="act-header">
+        <div>
+          <div class="act-title">📋 Activity by Age Group &amp; Division</div>
+          <div class="act-sub">All games including not played and not reported</div>
+        </div>
+        <button id="actExpandBtn" class="act-expand-btn" onclick="if(window._toggleActivityExpand) window._toggleActivityExpand()">
+          <span id="actExpandIcon">⊞</span> <span id="actExpandLabel">Expand by Division</span>
+        </button>
+      </div>
+      <div class="twrap" style="border-radius:12px;">
+        <table id="activityTable" style="min-width:680px;">
+          <thead>
+            <tr>
+              <th id="act-th-age" style="text-align:left;cursor:default;">Age Group</th>
+              <th id="act-th-div" style="text-align:left;cursor:default;display:none;">Division</th>
+              <th style="text-align:center;">Total Games Scheduled</th>
+              <th style="text-align:center;color:var(--green);">Wins</th>
+              <th style="text-align:center;">Draws</th>
+              <th style="text-align:center;color:var(--red);">Losses</th>
+              <th style="text-align:center;color:var(--amber);">Not Reported</th>
+              <th style="text-align:center;color:var(--text);">Total Played</th>
+              <th style="text-align:center;color:var(--muted);">Not Played</th>
+            </tr>
+          </thead>
+          <tbody id="activityTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div id="tab-insights" class="tab-panel">
