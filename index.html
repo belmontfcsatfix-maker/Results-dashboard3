@@ -471,16 +471,16 @@ function getDiv(r) {
   const m = String(r).match(/^U?([^\s]+)/i);
   return m ? m[1] : r;
 }
-function getAge(r) {
+function getAge(r, isGirls) {
   // Extract digits after optional 'U', stopping before the first '.'
   // e.g. "U11.3 Girls" → "U11G",  "13.2" → "U13",  "Girls U10.1" → "U10G"
   const s = String(r);
-  const isGirls = /girls/i.test(s);
+  const girls = isGirls || /girls/i.test(s);
   const m = s.match(/U(\d+)\./i)      // "U11." style
          || s.match(/U(\d+)/i)         // "U11" (no dot)
          || s.match(/(\d+)\./i)         // "13." style (no leading U)
          || s.match(/(\d+)/i);          // bare digits fallback
-  return m ? 'U' + m[1] + (isGirls ? 'G' : '') : 'Other';
+  return m ? 'U' + m[1] + (girls ? 'G' : '') : 'Other';
 }
 
 const ALL = DATA.map(g => {
@@ -496,9 +496,9 @@ const ALL = DATA.map(g => {
       result_type = 'nr';
     }
   }
-  const isGirls = /girls/i.test(g.division_raw || '');
+  const isGirls = /girls/i.test(g.division_raw || '') || /girls/i.test(g.group || '');
   const divVal = getDiv(g.division_raw) + (isGirls ? 'G' : '');
-  return { ...g, division: divVal, age: getAge(g.division_raw),
+  return { ...g, division: divVal, age: getAge(g.division_raw, isGirls),
     is_home: bh, result_type, tournament: g.tournament || 'League',
     group: g.group || '' };
 });
