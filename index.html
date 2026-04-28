@@ -473,12 +473,14 @@ function getDiv(r) {
 }
 function getAge(r) {
   // Extract digits after optional 'U', stopping before the first '.'
-  // e.g. "U11.3 Girls" → "U11",  "13.2" → "U13",  "Girls U10.1" → "U10"
-  const m = String(r).match(/U(\d+)\./i)      // "U11." style
-         || String(r).match(/U(\d+)/i)         // "U11" (no dot)
-         || String(r).match(/(\d+)\./i)         // "13." style (no leading U)
-         || String(r).match(/(\d+)/i);          // bare digits fallback
-  return m ? 'U' + m[1] : 'Other';
+  // e.g. "U11.3 Girls" → "U11G",  "13.2" → "U13",  "Girls U10.1" → "U10G"
+  const s = String(r);
+  const isGirls = /girls/i.test(s);
+  const m = s.match(/U(\d+)\./i)      // "U11." style
+         || s.match(/U(\d+)/i)         // "U11" (no dot)
+         || s.match(/(\d+)\./i)         // "13." style (no leading U)
+         || s.match(/(\d+)/i);          // bare digits fallback
+  return m ? 'U' + m[1] + (isGirls ? 'G' : '') : 'Other';
 }
 
 const ALL = DATA.map(g => {
