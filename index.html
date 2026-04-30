@@ -497,7 +497,7 @@ const ALL = DATA.map(g => {
     }
   }
   const isGirls = /girls/i.test(g.division_raw || '') || /girls/i.test(g.group || '');
-  const divVal = getDiv(g.division_raw) + (isGirls ? 'G' : '');
+  const divVal = getDiv(g.division_raw).replace(/G+$/i, '') + (isGirls ? 'G' : '');
   return { ...g, division: divVal, age: getAge(g.division_raw, isGirls),
     is_home: bh, result_type, tournament: g.tournament || 'League',
     group: g.group || '' };
