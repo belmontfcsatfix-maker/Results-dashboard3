@@ -308,23 +308,14 @@ td.loccol { font-size:0.78rem; color:var(--muted); max-width:160px; overflow:hid
     <div class="val" id="filesLoaded" style="font-size:0.75rem;letter-spacing:0.03em;color:var(--muted)">—</div>
     <div class="lbl" style="margin-top:8px">Last Updated</div>
     <div class="val" id="lastUpdated">—</div>
-    <div class="lbl" style="margin-top:10px">👥 Visitors</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-top:4px;">
+    <div class="lbl" style="margin-top:10px">👥 Visitors (All Time)</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:4px;">
       <div class="vpill" style="padding:3px 8px;gap:5px;">
-        <span class="vlbl">Today</span>
-        <span class="vnum" id="vc-today" style="font-size:0.95rem;">…</span>
-      </div>
-      <div class="vpill" style="padding:3px 8px;gap:5px;">
-        <span class="vlbl">Month</span>
-        <span class="vnum" id="vc-month" style="font-size:0.95rem;">…</span>
-      </div>
-      <div class="vpill" style="padding:3px 8px;gap:5px;">
-        <span class="vlbl">Year</span>
-        <span class="vnum" id="vc-year" style="font-size:0.95rem;">…</span>
-      </div>
-      <div class="vpill" style="padding:3px 8px;gap:5px;">
-        <span class="vlbl">All</span>
-        <span class="vnum" id="vc-total" style="font-size:0.95rem;">…</span>
+        <img src="https://belmontfc.goatcounter.com/counter/%2F.svg"
+             alt="visitor count"
+             style="height:1.1rem;vertical-align:middle;filter:brightness(0) invert(1);"
+             onerror="this.style.display='none';document.getElementById('vc-fallback').style.display='inline';">
+        <span id="vc-fallback" style="display:none;font-family:'Bebas Neue',sans-serif;font-size:0.95rem;color:var(--yellow);">—</span>
       </div>
     </div>
   </div>
@@ -1470,45 +1461,6 @@ window._renderActivity = renderActivity;
 <script data-goatcounter="https://belmontfc.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 
-<script>
-// ── Visitor Counter (GoatCounter public counter API) ────────────────────────
-(function() {
-  // /counter/%2F.json is the root-path counter and accepts ?start= / ?end= date filters
-  const BASE = 'https://belmontfc.goatcounter.com/counter/%2F.json';
 
-  function setEl(id, val) {
-    var el = document.getElementById(id);
-    if (el) el.textContent = val;
-  }
-
-  function isoDate(d) { return d.toISOString().slice(0, 10); }
-
-  var now        = new Date();
-  var today      = isoDate(now);
-  var monthStart = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
-  var yearStart  = isoDate(new Date(now.getFullYear(), 0, 1));
-
-  function loadOne(id, start, end) {
-    var url = BASE + '?start=' + start + '&end=' + end;
-    fetch(url)
-      .then(function(r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(function(json) {
-        // count may be a number or a string like "1 234" with thin-space thousands sep
-        var raw = (json.count !== undefined && json.count !== null) ? String(json.count) : '0';
-        var clean = raw.replace(/[\s\u00a0\u202f]/g, '');
-        setEl(id, clean === '' ? '0' : clean);
-      })
-      .catch(function() { setEl(id, '—'); });
-  }
-
-  loadOne('vc-today', today,        today);
-  loadOne('vc-month', monthStart,   today);
-  loadOne('vc-year',  yearStart,    today);
-  loadOne('vc-total', '2020-01-01', today);
-})();
-</script>
 </body>
 </html>
