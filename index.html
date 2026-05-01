@@ -308,32 +308,24 @@ td.loccol { font-size:0.78rem; color:var(--muted); max-width:160px; overflow:hid
     <div class="val" id="filesLoaded" style="font-size:0.75rem;letter-spacing:0.03em;color:var(--muted)">—</div>
     <div class="lbl" style="margin-top:8px">Last Updated</div>
     <div class="val" id="lastUpdated">—</div>
-  </div>
-</div>
-
-<!-- VISITOR COUNTER BAR -->
-<div class="visitor-bar">
-  <div class="visitor-bar-label">👥 Visitors</div>
-  <div class="visitor-pills">
-    <div class="vpill">
-      <span class="vpill-icon">📅</span>
-      <span class="vnum" id="vc-today">—</span>
-      <span class="vlbl">Today</span>
-    </div>
-    <div class="vpill">
-      <span class="vpill-icon">🗓️</span>
-      <span class="vnum" id="vc-month">—</span>
-      <span class="vlbl">This Month</span>
-    </div>
-    <div class="vpill">
-      <span class="vpill-icon">📆</span>
-      <span class="vnum" id="vc-year">—</span>
-      <span class="vlbl">This Year</span>
-    </div>
-    <div class="vpill">
-      <span class="vpill-icon">🏟️</span>
-      <span class="vnum" id="vc-total">—</span>
-      <span class="vlbl">All Time</span>
+    <div class="lbl" style="margin-top:10px">👥 Visitors</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;margin-top:4px;">
+      <div class="vpill" style="padding:3px 8px;gap:5px;">
+        <span class="vlbl">Today</span>
+        <span class="vnum" id="vc-today" style="font-size:0.95rem;">…</span>
+      </div>
+      <div class="vpill" style="padding:3px 8px;gap:5px;">
+        <span class="vlbl">Month</span>
+        <span class="vnum" id="vc-month" style="font-size:0.95rem;">…</span>
+      </div>
+      <div class="vpill" style="padding:3px 8px;gap:5px;">
+        <span class="vlbl">Year</span>
+        <span class="vnum" id="vc-year" style="font-size:0.95rem;">…</span>
+      </div>
+      <div class="vpill" style="padding:3px 8px;gap:5px;">
+        <span class="vlbl">All</span>
+        <span class="vnum" id="vc-total" style="font-size:0.95rem;">…</span>
+      </div>
     </div>
   </div>
 </div>
@@ -1479,9 +1471,10 @@ window._renderActivity = renderActivity;
         async src="//gc.zgo.at/count.js"></script>
 
 <script>
-// ── Visitor Counter (GoatCounter /counter/TOTAL.json via XHR) ───────────────
+// ── Visitor Counter (GoatCounter public counter API) ────────────────────────
 (function() {
-  const BASE = 'https://belmontfc.goatcounter.com/counter/TOTAL.json';
+  // /counter/%2F.json is the root-path counter and accepts ?start= / ?end= date filters
+  const BASE = 'https://belmontfc.goatcounter.com/counter/%2F.json';
 
   function setEl(id, val) {
     var el = document.getElementById(id);
@@ -1495,30 +1488,21 @@ window._renderActivity = renderActivity;
   var monthStart = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
   var yearStart  = isoDate(new Date(now.getFullYear(), 0, 1));
 
-  function xhrGet(url, cb) {
-    var r = new XMLHttpRequest();
-    r.addEventListener('load', function() {
-      try { cb(null, JSON.parse(this.responseText)); }
-      catch(e) { cb(e); }
-    });
-    r.addEventListener('error', function() { cb(new Error('XHR error')); });
-    r.open('GET', url);
-    r.send();
-  }
-
   function loadOne(id, start, end) {
     var url = BASE + '?start=' + start + '&end=' + end;
-    xhrGet(url, function(err, json) {
-      if (err) { setEl(id, '—'); return; }
-      // GoatCounter returns count as a formatted string e.g. "1 234" (space as thousands sep)
-      var raw = (json.count !== undefined && json.count !== null) ? String(json.count) : '0';
-      var clean = raw.replace(/\s/g, '');          // strip all whitespace / thin-spaces
-      setEl(id, clean === '' ? '0' : clean);
-    });
+    fetch(url)
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(json) {
+        // count may be a number or a string like "1 234" with thin-space thousands sep
+        var raw = (json.count !== undefined && json.count !== null) ? String(json.count) : '0';
+        var clean = raw.replace(/[\s\u00a0\u202f]/g, '');
+        setEl(id, clean === '' ? '0' : clean);
+      })
+      .catch(function() { setEl(id, '—'); });
   }
-
-  // Set loading state
-  ['vc-today','vc-month','vc-year','vc-total'].forEach(function(id){ setEl(id,'…'); });
 
   loadOne('vc-today', today,        today);
   loadOne('vc-month', monthStart,   today);
