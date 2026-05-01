@@ -1479,58 +1479,47 @@ window._renderActivity = renderActivity;
         async src="//gc.zgo.at/count.js"></script>
 
 <script>
-// ── Visitor Counter (GoatCounter API) ───────────────────────────────────────
+// ── Visitor Counter (GoatCounter /counter/TOTAL.json via XHR) ───────────────
 (function() {
-  const BASE = 'https://belmontfc.goatcounter.com/api/v0';
-  const fmt  = n => (n || 0).toLocaleString();
+  const BASE = 'https://belmontfc.goatcounter.com/counter/TOTAL.json';
 
   function setEl(id, val) {
-    const el = document.getElementById(id);
+    var el = document.getElementById(id);
     if (el) el.textContent = val;
   }
 
   function isoDate(d) { return d.toISOString().slice(0, 10); }
 
-  const now       = new Date();
-  const todayStr  = isoDate(now);
-  const monthStart = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
-  const yearStart  = isoDate(new Date(now.getFullYear(), 0, 1));
-  const allStart   = '2020-01-01'; // far enough back to capture all time
+  var now        = new Date();
+  var today      = isoDate(now);
+  var monthStart = isoDate(new Date(now.getFullYear(), now.getMonth(), 1));
+  var yearStart  = isoDate(new Date(now.getFullYear(), 0, 1));
 
-  // Fetch a visitor count for a given date range from GoatCounter
-  async function fetchCount(start, end) {
-    const url = `${BASE}/stats/total?start=${start}&end=${end}`;
-    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-    if (!res.ok) return null;
-    const json = await res.json();
-    // GoatCounter returns { total: N, total_unique: N }
-    return json.total_unique ?? json.total ?? null;
+  function xhrGet(url, cb) {
+    var r = new XMLHttpRequest();
+    r.addEventListener('load', function() {
+      try { cb(null, JSON.parse(this.responseText)); }
+      catch(e) { cb(e); }
+    });
+    r.addEventListener('error', function() { cb(new Error('XHR error')); });
+    r.open('GET', url);
+    r.send();
   }
 
-  async function loadCounts() {
-    setEl('vc-today', '…');
-    setEl('vc-month', '…');
-    setEl('vc-year',  '…');
-    setEl('vc-total', '…');
-
-    try {
-      const [today, month, year, total] = await Promise.all([
-        fetchCount(todayStr,  todayStr),
-        fetchCount(monthStart, todayStr),
-        fetchCount(yearStart,  todayStr),
-        fetchCount(allStart,   todayStr),
-      ]);
-      setEl('vc-today', fmt(today));
-      setEl('vc-month', fmt(month));
-      setEl('vc-year',  fmt(year));
-      setEl('vc-total', fmt(total));
-    } catch(e) {
-      ['vc-today','vc-month','vc-year','vc-total'].forEach(id => setEl(id, '—'));
-      console.warn('GoatCounter fetch failed:', e);
-    }
+  function loadOne(id, start, end) {
+    var url = BASE + '?start=' + start + '&end=' + end;
+    xhrGet(url, function(err, json) {
+      setEl(id, err ? '—' : (json.count || '0'));
+    });
   }
 
-  loadCounts();
+  // Set loading state
+  ['vc-today','vc-month','vc-year','vc-total'].forEach(function(id){ setEl(id,'…'); });
+
+  loadOne('vc-today', today,        today);
+  loadOne('vc-month', monthStart,   today);
+  loadOne('vc-year',  yearStart,    today);
+  loadOne('vc-total', '2020-01-01', today);
 })();
 </script>
 </body>
